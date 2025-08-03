@@ -3,97 +3,128 @@ package graphs
 import (
 	"fmt"
 	"image/color"
+	"sort"
+	"time"
 
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/vg"
-	// "github.com/fogleman/gg"
-	// "log"
 )
 
+// gonumライブラリを使用した理想的な積み上げ棒グラフ
 func DrawCommitChart(commitsHistory []int, maxCommits int, width int, height int, username string) error {
-	y := make([]float64, len(commitsHistory))
-	for i := range y {
-		y[i] = float64(commitsHistory[i])
-	}
-	x := make([]float64, len(commitsHistory))
-	for i := range x {
-		x[i] = float64(i-len(commitsHistory)) + 1
+	// 月ごとのデータを集計
+	monthlyData := make(map[string]int)
+	now := time.Now()
+	
+	for i, commits := range commitsHistory {
+		// 過去の日付を計算
+		pastDate := now.AddDate(0, 0, -(len(commitsHistory) - i - 1))
+		monthKey := pastDate.Format("Jan") // "Jan"形式（年を削除）
+		monthlyData[monthKey] += commits
 	}
 
-	if len(x) != len(y) {
-		fmt.Println("x and y arrays must have the same length")
+	// 時系列順にソート
+	months := make([]string, 0, len(monthlyData))
+	for month := range monthlyData {
+		months = append(months, month)
+	}
+	sort.Strings(months)
+
+	// グラフ用のデータを作成
+	var values []float64
+	var labels []string
+	for _, month := range months {
+		values = append(values, float64(monthlyData[month]))
+		labels = append(labels, month)
+	}
+
+	// データが空の場合はエラーを返す
+	if len(values) == 0 {
+		return fmt.Errorf("no data to plot")
 	}
 
 	p := plot.New()
 
-	bgColor := color.RGBA{R: 51, G: 51, B: 51, A: 255}
+	// 背景色を設定
+	bgColor := color.RGBA{R: 30, G: 30, B: 30, A: 255} // より暗い背景
 	p.BackgroundColor = bgColor
 
-	points := make(plotter.XYs, len(x))
-	for i := range x {
-		points[i].X = x[i]
-		points[i].Y = y[i]
-	}
-
-	line, err := plotter.NewLine(points)
+	// 棒グラフを作成
+	bars, err := plotter.NewBarChart(plotter.Values(values), vg.Points(50))
 	if err != nil {
-		panic(err)
+		return err
 	}
-	line.Color = color.RGBA{R: 135, G: 206, B: 235, A: 255}
-	p.Add(line)
-	// plot.DefaultFont = font.Font{
-	// 	Typeface: "Roboto-Medium.ttf",
-	// 	Variant:  "Roboto-Medium.ttf",
-	// 	Size:     12.0,
-	// }
-	p.Title.Text = "Contribution History"
-	p.X.Label.Text = "Days"
+	bars.Color = color.RGBA{R: 0, G: 180, B: 255, A: 255} // 明るい青
+	bars.LineStyle.Color = color.RGBA{R: 255, G: 255, B: 255, A: 255} // 白い枠線
+	bars.LineStyle.Width = vg.Points(1)
+	p.Add(bars)
+
+	// タイトル
+	p.Title.Text = "Monthly Commit Activity"
+	p.Title.TextStyle.Font.Size = 45
+	p.Title.TextStyle.Color = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	p.Title.Padding = 45
+
+	// Y軸
 	p.Y.Label.Text = "Commits"
+	p.Y.Label.TextStyle.Font.Size = 36
+	p.Y.Label.TextStyle.Color = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	p.Y.Tick.Label.Font.Size = 30
+	p.Y.Tick.Label.Color = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	p.Y.Tick.Color = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	p.Y.LineStyle.Color = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	p.Y.LineStyle.Width = vg.Points(2)
+	p.Y.Label.Padding = 45
 
-	p.X.Min = -366
-	p.X.Max = 5
-	p.Y.Min = -0
-	p.Y.Max = float64(maxCommits) + 5
+	// Y軸の範囲を調整
+	maxValue := 0.0
+	for _, v := range values {
+		if v > maxValue {
+			maxValue = v
+		}
+	}
+	if maxValue > 0 {
+		p.Y.Max = maxValue * 1.2
+	}
 
-	// ラベルの外に余白を持つ
-	p.Title.Padding = 10  // タイトル周りの余白
-	p.X.Label.Padding = 2 // X軸ラベル周りの余白
-	p.Y.Label.Padding = 2 // Y軸ラベル周りの余白
+	// X軸
+	p.X.Label.Text = "Month"
+	p.X.Label.TextStyle.Font.Size = 36
+	p.X.Label.TextStyle.Color = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	p.X.Tick.Label.Font.Size = 30
+	p.X.Tick.Label.Color = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	p.X.Tick.Color = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	p.X.LineStyle.Color = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	p.X.LineStyle.Width = vg.Points(2)
+	p.X.Label.Padding = 45
 
-	// DefaultTextHandler is the default text handler used for text processing.
+	// カスタムX軸ティック
+	var ticks []plot.Tick
+	for i, label := range labels {
+		ticks = append(ticks, plot.Tick{Value: float64(i), Label: label})
+	}
+	p.X.Tick.Marker = plot.ConstantTicks(ticks)
 
-	white := color.White
-	p.Title.TextStyle.Color = white
-	p.X.Tick.Color = white
-	p.Y.Tick.Color = white
-	p.X.Label.TextStyle.Color = white
-	p.Y.Label.TextStyle.Color = white
-	p.X.Tick.Label.Color = white
-	p.Y.Tick.Label.Color = white
-	p.X.LineStyle.Color = white
-	p.Y.LineStyle.Color = white
+	// グリッドを追加
+	grid := plotter.NewGrid()
+	grid.Horizontal.Color = color.RGBA{R: 80, G: 80, B: 80, A: 150}
+	grid.Vertical.Color = color.RGBA{R: 80, G: 80, B: 80, A: 150}
+	grid.Horizontal.Width = vg.Points(1.5)
+	grid.Vertical.Width = vg.Points(1.5)
+	p.Add(grid)
 
 	p.X.Padding, p.Y.Padding = 0, 0
 	imageFileName := fmt.Sprintf("./images/commits_history_%s.png", username)
-	if err := p.Save(5*vg.Inch, 2*vg.Inch, imageFileName); err != nil {
-		panic(err)
+	
+	// 解像度を高く設定
+	// 1インチ = 96ピクセルとして計算
+	widthInch := vg.Inch * vg.Length(width) / 96
+	heightInch := vg.Inch * vg.Length(height) / 96
+	
+	if err := p.Save(widthInch, heightInch, imageFileName); err != nil {
+		return err
 	}
 
-	// ggを使用してテキストをオーバーレイ
-	// dc := gg.NewContext(width, height)
-	// err = dc.LoadFontFace("Roboto-Medium.ttf", 123)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// // 背景を透明に設定
-	// dc.SetRGBA(0, 0, 0, 0) // 背景を透明に
-	// dc.SetRGB(0, 0, 0) // テキストの色を設定（黒色）
-	// dc.DrawString("kkdkdkdkkdd", 50, 10) // テキストを描画する位置を指定
-	// err = dc.SavePNG("./images/commits_history_with_text.png")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	return err
+	return nil
 }

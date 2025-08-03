@@ -3,25 +3,72 @@
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
-import { ChangeEvent, FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useState, useEffect } from "react";
 import { getImage } from "../api/api";
 
 interface ImageDisplayProps {
   loading: boolean;
   imageUrl: string | null;
+  onImageLoad: () => void;
+  onImageError: () => void;
 }
 
-function ImageDisplay({ loading, imageUrl }: ImageDisplayProps) {
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+function ImageDisplay({
+  loading,
+  imageUrl,
+  onImageLoad,
+  onImageError,
+}: ImageDisplayProps) {
+  console.log("ImageDisplay - loading:", loading, "imageUrl:", imageUrl);
 
-  if (imageUrl) {
+  if (loading) {
+    console.log("Showing loading spinner");
     return (
-      <img src={imageUrl} alt="GitHub User Image" className="w-8/12 h-auto" />
+      <div
+        className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999]"
+        style={{ position: "fixed", zIndex: 9999 }}
+      >
+        <div className="flex flex-col items-center justify-center p-12 bg-gray-900 bg-opacity-95 rounded-xl min-h-[300px] border-4 border-green-500 shadow-2xl">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-500 mb-6"></div>
+          <p className="text-white text-xl font-bold mb-2">画像を生成中...</p>
+          <p className="text-gray-300 text-lg">しばらくお待ちください</p>
+          <div className="mt-4 text-green-400 text-sm">処理中...</div>
+        </div>
+      </div>
     );
   }
 
+  if (imageUrl) {
+    console.log("Showing image with URL:", imageUrl);
+    return (
+      <img
+        src={imageUrl}
+        alt="GitHub User Image"
+        className="w-8/12 h-auto"
+        onLoad={(e) => {
+          console.log("Image loaded successfully");
+          const img = e.target as HTMLImageElement;
+          console.log(
+            "Image dimensions:",
+            img.naturalWidth,
+            "x",
+            img.naturalHeight
+          );
+          // 画像が正常に読み込まれたことを通知（ローディングは既に解除済み）
+          onImageLoad();
+        }}
+        onError={(e) => {
+          console.error("Image load error:", e);
+          const img = e.target as HTMLImageElement;
+          console.error("Failed image URL:", img.src);
+          // 画像の読み込みに失敗したことを通知
+          onImageError();
+        }}
+      />
+    );
+  }
+
+  console.log("Showing nothing");
   return null;
 }
 
@@ -34,6 +81,23 @@ function Username() {
     `![GitHub persona](${apiUrl}/create?username=`
   );
 
+  // ローディング状態を監視
+  useEffect(() => {
+    console.log("Loading state changed:", loading);
+  }, [loading]);
+
+  // 画像が読み込まれた時の処理
+  const handleImageLoad = () => {
+    console.log("Image loaded, setting loading to false");
+    setLoading(false);
+  };
+
+  // 画像の読み込みに失敗した時の処理
+  const handleImageError = () => {
+    console.log("Image failed to load, setting loading to false");
+    setLoading(false);
+  };
+
   const copyToClipboard = async () => {
     await navigator.clipboard.writeText(
       `![GitHub persona](${apiUrl}/create?username=${username})`
@@ -44,28 +108,34 @@ function Username() {
     console.log("Username submitted:", username);
     e.preventDefault();
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-    const fullUrl = `${apiUrl}/create?username=${username}`;
+    const timestamp = Date.now(); // キャッシュバスティング用
+    const fullUrl = `${apiUrl}/create?username=${username}&t=${timestamp}`;
     console.log("Calling API:", fullUrl);
     setLoading(true);
+    console.log("Loading set to true");
+    setImageUrl(""); // 古い画像をクリア
     setResultText(`![GitHub persona](${apiUrl}/create?username=${username})`);
+
     try {
       console.log("Starting API call...");
       const statusCode = await getImage(username);
       console.log("API response status:", statusCode);
+
       if (statusCode !== 200) {
         throw new Error(`Failed to fetch image, status code: ${statusCode}`);
       }
-      console.log("API call successful");
-      // 画像URLを設定
-      console.log("Setting image URL:", fullUrl);
+
+      console.log("API call successful, setting image URL");
+      // API呼び出しが成功した後に画像URLを設定
       setImageUrl(fullUrl);
+
+      // API呼び出しが成功したらローディングを解除
+      console.log("API call successful, setting loading to false");
+      setLoading(false);
     } catch (error) {
       console.error("API call failed:", error);
-    } finally {
       setLoading(false);
-      console.log("Loading set to false");
     }
-    console.log(loading);
   };
 
   return (
@@ -105,8 +175,13 @@ function Username() {
           </div>
         )}
       </div>
-      <div className="flex flex-col items-center justify-center z-40">
-        <ImageDisplay loading={loading} imageUrl={imageUrl} />
+      <div className="flex flex-col items-center justify-center z-[9999] relative min-h-[300px] w-full">
+        <ImageDisplay
+          loading={loading}
+          imageUrl={imageUrl}
+          onImageLoad={handleImageLoad}
+          onImageError={handleImageError}
+        />
       </div>
     </form>
   );

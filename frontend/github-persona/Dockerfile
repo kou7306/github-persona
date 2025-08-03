@@ -8,14 +8,8 @@ COPY package*.json ./
 # 依存関係をインストール
 RUN npm ci
 
-# ソースコードをコピー
-COPY . .
-
-# ビルド
-RUN npm run build
-
 # ポート3000を公開
 EXPOSE 3000
 
-# アプリケーションを起動
-CMD ["npm", "start"] 
+# 開発モードで起動（ソースコードはボリュームマウントされる）
+CMD ["npm", "run", "dev"] 

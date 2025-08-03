@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/tomoish/github-persona/funcs"
@@ -115,7 +116,7 @@ import (
 func createHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")                   // すべてのオリジンからのアクセスを許可
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS") // 許可するHTTPメソッド
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With")
+	w.Header().Set("Access-Control-Allow-Headers", "*") // すべてのヘッダーを許可
 
 	// OPTIONSリクエストへの対応（プリフライトリクエスト）
 	if r.Method == "OPTIONS" {
@@ -127,24 +128,64 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 	username := queryValues.Get("username")
 	if r.Method == http.MethodGet {
 		// GETリクエストの処理
-		// 画像生成の処理...
 		fmt.Printf("Processing request for user: %s\n", username)
 		
-		_, star, _ := funcs.GetRepositories(username)
-		fmt.Printf("Repositories processed for %s\n", username)
+		// 並行処理で画像生成を高速化
+		reposChan := make(chan []funcs.Repository)
+		statsChan := make(chan funcs.UserStats)
+		languageChan := make(chan []funcs.LanguageStat)
+		commitChan := make(chan []int)
+		maxCommitsChan := make(chan int)
+		errChan := make(chan error)
 		
-		// stats取得と画像生成
-		stats := funcs.CreateUserStats(username, star)
-		fmt.Printf("Stats created for %s\n", username)
+		// リポジトリ情報を並行取得（一度だけ）
+		go func() {
+			repos, star, _ := funcs.GetRepositories(username)
+			reposChan <- repos
+			// 同じリポジトリ情報を使って統計も生成
+			stats := funcs.CreateUserStats(username, star)
+			statsChan <- stats
+		}()
+		
+		// 言語情報を並行取得
+		go func() {
+			language := funcs.CreateLanguageImg(username)
+			languageChan <- language
+		}()
+		
+		// コミット履歴を並行取得
+		go func() {
+			_, dailyCommits, maxCommits, err := funcs.GetCommitHistory(username)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			commitChan <- dailyCommits
+			maxCommitsChan <- maxCommits
+		}()
+		
+		// 結果を待機
+		_ = <-reposChan // 未使用変数を削除
+		stats := <-statsChan
+		language := <-languageChan
+		dailyCommits := <-commitChan
+		maxCommits := <-maxCommitsChan
+		
+		// エラーチェック
+		select {
+		case err := <-errChan:
+			fmt.Printf("Error getting commit history for %s: %v\n", username, err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		default:
+		}
+		
+		fmt.Printf("All data retrieved for %s\n", username)
 		
 		total := stats.TotalStars + stats.ContributedTo + stats.TotalIssues + stats.TotalPRs + stats.TotalCommits
 		
-		// 言語画像の生成
-		language := funcs.CreateLanguageImg(username)
-		fmt.Printf("Language image created for %s\n", username)
-		
 		//レベル、職業判定
-		profession, level := funcs.JudgeRank(language, stats, star)
+		profession, level := funcs.JudgeRank(language, stats, 0) // starの代わりに0を使用
 		fmt.Printf("Rank judged for %s: profession=%s, level=%d\n", username, profession, level)
 		
 		//対象のキャラの画像を取得
@@ -153,35 +194,72 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 
 		filePath := fmt.Sprintf("characterImages/%s", img)
 
-		// 背景画像の生成
-		funcs.DrawBackground(username, "Lv."+strconv.Itoa(level), profession)
-		fmt.Printf("Background drawn for %s\n", username)
-
-		// キャラクター画像の生成
-		funcs.CreateCharacterImg(filePath, "images/gauge.png", total, level, username)
-		fmt.Printf("Character image created for %s\n", username)
-
-		_, dailyCommits, maxCommits, err := funcs.GetCommitHistory(username)
-		if err != nil {
-			fmt.Printf("Error getting commit history for %s: %v\n", username, err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		fmt.Printf("Commit history retrieved for %s\n", username)
-
-		err = graphs.DrawCommitChart(dailyCommits, maxCommits, 1000, 700, username)
-		if err != nil {
+		// 並行処理で画像生成（すべて同時に実行）
+		backgroundChan := make(chan error)
+		characterChan := make(chan error)
+		commitChartChan := make(chan error)
+		statsImgChan := make(chan error)
+		languageImgChan := make(chan error)
+		
+		// 背景画像を並行生成
+		go func() {
+			funcs.DrawBackground(username, "Lv."+strconv.Itoa(level), profession)
+			backgroundChan <- nil
+		}()
+		
+		// キャラクター画像を並行生成
+		go func() {
+			funcs.CreateCharacterImg(filePath, "images/gauge.png", total, level, username)
+			characterChan <- nil
+		}()
+		
+		// コミットチャートを並行生成
+		go func() {
+			err := graphs.DrawCommitChart(dailyCommits, maxCommits, 1600, 1000, username) // 2400x1600から1600x1000に調整
+			commitChartChan <- err
+		}()
+		
+		// 統計画像の生成も並行化（CreateUserStats内で生成される）
+		go func() {
+			// 統計画像を生成
+			funcs.CreateUserStats(username, stats.TotalStars)
+			statsImgChan <- nil
+		}()
+		
+		// 言語画像の生成も並行化（CreateLanguageImg内で生成される）
+		go func() {
+			// CreateLanguageImgは既に実行済みなので、ここでは待機のみ
+			languageImgChan <- nil
+		}()
+		
+		// すべての画像生成完了を待機
+		<-backgroundChan
+		<-characterChan
+		<-statsImgChan
+		<-languageImgChan
+		if err := <-commitChartChan; err != nil {
 			fmt.Printf("Error drawing commit chart for %s: %v\n", username, err)
 			http.Error(w, "Failed to draw commit chart", http.StatusInternalServerError)
 			return
 		}
-		fmt.Printf("Commit chart drawn for %s\n", username)
+		
+		fmt.Printf("All images generated for %s\n", username)
 		
 		backImg := fmt.Sprintf("./images/background_%s.png", username)
 		statsImg := fmt.Sprintf("./images/stats_%s.png", username)
 		characterImg := fmt.Sprintf("./images/generate_character_%s.png", username)
 		languageImg := fmt.Sprintf("./images/language_%s.png", username)
 		dateImg := fmt.Sprintf("./images/commits_history_%s.png", username)
+		
+		// 画像ファイルの存在確認
+		requiredFiles := []string{backImg, statsImg, characterImg, languageImg, dateImg}
+		for _, file := range requiredFiles {
+			if _, err := os.Stat(file); os.IsNotExist(err) {
+				fmt.Printf("Error: Required file %s does not exist\n", file)
+				http.Error(w, fmt.Sprintf("Required file %s not found", file), http.StatusInternalServerError)
+				return
+			}
+		}
 		
 		// 全て合体して画像をメモリ上で生成
 		imageBytes, err := funcs.Merge_all_to_bytes(backImg, statsImg, characterImg, languageImg, dateImg)
@@ -192,11 +270,38 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Printf("Images merged successfully for %s\n", username)
 
+		// 最終的なマージされた画像をファイルとして保存
+		finalImagePath := fmt.Sprintf("./images/final_%s.png", username)
+		absPath, _ := os.Getwd()
+		fullPath := fmt.Sprintf("%s/%s", absPath, finalImagePath)
+		err = os.WriteFile(finalImagePath, imageBytes, 0644)
+		if err != nil {
+			fmt.Printf("Error saving final image for %s: %v\n", username, err)
+			http.Error(w, "Failed to save final image", http.StatusInternalServerError)
+			return
+		}
+		fmt.Printf("Final image saved successfully for %s\n", username)
+		fmt.Printf("  Path: %s\n", fullPath)
+		fmt.Printf("  Size: %d bytes\n", len(imageBytes))
+
+		// 部品画像のみを削除（並行処理）
+		go func() {
+			gaugeImg := "images/gauge.png"
+			os.Remove(backImg)
+			os.Remove(statsImg)
+			os.Remove(characterImg)
+			os.Remove(languageImg)
+			os.Remove(dateImg)
+			os.Remove(gaugeImg)
+			fmt.Printf("Component images cleaned up for %s\n", username)
+		}()
+
 		// レスポンスヘッダーを設定
 		w.Header().Set("Content-Type", "image/png")
-		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-		w.Header().Set("Pragma", "no-cache")
-		w.Header().Set("Expires", "0")
+		w.Header().Set("Cache-Control", "public, max-age=3600") // 1時間キャッシュ
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With")
 
 		// 画像データを直接レスポンスとして返す
 		w.Write(imageBytes)
@@ -205,7 +310,6 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
-
 }
 
 func main() {

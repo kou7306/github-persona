@@ -16,9 +16,11 @@ func CreateUserStats(username string, star int) UserStats {
 	err := SaveImage(imageFileName, ImgBytes)
 	if err != nil {
 		// エラーが発生した場合の処理
-		log.Fatal(err) // または他のエラーハンドリング方法を選択してください
+		fmt.Printf("Error saving stats image for %s: %v\n", username, err)
+		log.Fatal(err)
 	}
+	
+	fmt.Printf("Stats image saved successfully for %s: %s\n", username, imageFileName)
 
 	return stats
-
 }

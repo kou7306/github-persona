@@ -12,6 +12,12 @@ services:
       - GITHUB_TOKEN=${GITHUB_TOKEN}
     env_file:
       - ./src/.env
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
 
   frontend:
     build:
@@ -19,7 +25,12 @@ services:
     container_name: github_persona_frontend
     ports:
       - "3000:3000"
+    volumes:
+      - ./frontend/github-persona:/app
+      - /app/node_modules
+      - /app/.next
     depends_on:
       - app
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8080
+    command: npm run dev

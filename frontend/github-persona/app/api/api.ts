@@ -13,8 +13,9 @@ export const getImage = async (username: string): Promise<number> => {
       method: "GET",
       headers: {
         Accept: "image/png",
-        "Content-Type": "application/json",
       },
+      // タイムアウトを延長（画像生成には時間がかかる）
+      signal: AbortSignal.timeout(120000), // 30秒から120秒（2分）に延長
     });
     console.log("Response status:", response.status);
     console.log("Response headers:", response.headers);
