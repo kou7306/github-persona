@@ -14,13 +14,23 @@ https://github-persona-i4wyybtla-kous-projects-7736bb57.vercel.app
 
 To display it in your markdown, simply copy and paste the following code. Remember to replace `<your username>` with your actual GitHub username.
 
-```
+```markdown
 ![GitHub Persona](https://github-persona-backend-vrkndjdhdq-uc.a.run.app/create?username=<your username>)
+```
+
+### Quick Start
+
+Just add this to your README.md:
+
+```markdown
+![GitHub Persona](https://github-persona-backend-vrkndjdhdq-uc.a.run.app/create?username=your-username)
 ```
 
 #### Example
 
-![GitHub Persona](./example-output.png)
+![GitHub Persona](https://github-persona-backend-vrkndjdhdq-uc.a.run.app/create?username=kou7306)
+
+![Static Example](./example-output.png)
 
 ## Contributing
 
