@@ -54,7 +54,7 @@ function ImageDisplay({
             "x",
             img.naturalHeight
           );
-          // 画像が正常に読み込まれたことを通知（ローディングは既に解除済み）
+          // 画像が正常に読み込まれたことを通知
           onImageLoad();
         }}
         onError={(e) => {
@@ -129,9 +129,8 @@ function Username() {
       // API呼び出しが成功した後に画像URLを設定
       setImageUrl(fullUrl);
 
-      // API呼び出しが成功したらローディングを解除
-      console.log("API call successful, setting loading to false");
-      setLoading(false);
+      // ローディングは画像のonLoadイベントで解除されるため、ここでは解除しない
+      console.log("Image URL set, waiting for image to load...");
     } catch (error) {
       console.error("API call failed:", error);
       setLoading(false);

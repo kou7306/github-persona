@@ -11,12 +11,8 @@ import (
 
 // 交互にトークンを取得するための関数
 func GetTokens(currentIndex int) (string, int) {
-	// .envファイルから環境変数を読み込む
-	err := godotenv.Load()
-	if err != nil {
-		fmt.Println("Error loading .env file")
-		return "", currentIndex
-	}
+	// .envファイルから環境変数を読み込む（オプション）
+	godotenv.Load() // エラーは無視する
 	
 	// 個人アクセストークンを環境変数から取得
 	token := os.Getenv("GITHUB_TOKEN")

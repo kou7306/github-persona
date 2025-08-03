@@ -24,6 +24,9 @@ WORKDIR /root/
 # ビルドしたバイナリをコピー
 COPY --from=builder /app/main .
 
+# 必要なディレクトリを作成
+RUN mkdir -p characterImages images
+
 # 必要なファイルをコピー
 COPY ./src/characterImages ./characterImages
 COPY ./src/ipaexg.ttf ./ipaexg.ttf
