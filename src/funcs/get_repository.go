@@ -79,8 +79,15 @@ func GetRepositories(username string) ([]Repository, int, error) {
 	`
 
 	token, _ := GetTokens(0)
+	if token == "" {
+		fmt.Println("Token is empty, cannot proceed")
+		return nil, 0, fmt.Errorf("GitHub token is not set")
+	}
+	fmt.Printf("Token: %s\n", token[:10] + "...") // トークンの最初の10文字を表示
+	
 	// GraphQLクエリにユーザー名を挿入
 	query = fmt.Sprintf(query, username)
+	fmt.Printf("Query for user: %s\n", username)
 
 	// GraphQL APIにリクエストを送信
 	url := "https://api.github.com/graphql"
@@ -98,6 +105,7 @@ func GetRepositories(username string) ([]Repository, int, error) {
 	}
 
 	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -106,6 +114,8 @@ func GetRepositories(username string) ([]Repository, int, error) {
 		return nil, 0, err
 	}
 	defer resp.Body.Close()
+
+	fmt.Printf("Response Status: %s\n", resp.Status)
 
 	// レスポンスをパース
 	var response GraphQLResponse
@@ -146,6 +156,7 @@ func GetRepositories(username string) ([]Repository, int, error) {
 	}
 
 	fmt.Printf("全リポジトリのスターの総数: %d\n", totalStars)
+	fmt.Printf("取得したリポジトリ数: %d\n", len(repositories))
 	return repositories, totalStars, nil
 }
 

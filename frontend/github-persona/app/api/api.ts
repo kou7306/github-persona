@@ -1,6 +1,27 @@
 export const getImage = async (username: string): Promise<number> => {
-  // const response = await fetch(`http://localhost:8080/create?username=${username}`);
-  const response = await fetch(`https://read-413014.an.r.appspot.com/create?username=${username}`);
-  response.status;
-  return response.status;
-}
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+  const fullUrl = `${apiUrl}/create?username=${username}`;
+  console.log("API URL:", fullUrl);
+  console.log(
+    "Environment variable NEXT_PUBLIC_API_URL:",
+    process.env.NEXT_PUBLIC_API_URL
+  );
+
+  try {
+    console.log("Sending fetch request to:", fullUrl);
+    const response = await fetch(fullUrl, {
+      method: "GET",
+      headers: {
+        Accept: "image/png",
+        "Content-Type": "application/json",
+      },
+    });
+    console.log("Response status:", response.status);
+    console.log("Response headers:", response.headers);
+    console.log("Response ok:", response.ok);
+    return response.status;
+  } catch (error) {
+    console.error("API call error:", error);
+    throw error;
+  }
+};

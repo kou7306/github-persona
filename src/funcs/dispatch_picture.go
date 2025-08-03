@@ -113,7 +113,7 @@ func DispatchPictureBasedOnProfession(profession string) string {
 	// 職業コードを取得
 	code, exists := professionToCode[professionPart]
 	if !exists {
-		return "default.png" // 職業がマップに存在しない場合はデフォルト画像を返す
+		return "a-1.png" // デフォルト画像の代わりに存在する画像を使用
 	}
 
 	// ランクに基づいてプレフィックスを決定

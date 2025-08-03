@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 services:
   app:
     build:
@@ -8,3 +8,18 @@ services:
       - "8080:8080"
     volumes:
       - ./src:/app
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+    env_file:
+      - ./src/.env
+
+  frontend:
+    build:
+      context: ./frontend/github-persona
+    container_name: github_persona_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - app
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080

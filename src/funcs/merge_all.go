@@ -1,6 +1,7 @@
 package funcs
 
 import (
+	"bytes"
 	"fmt"
 	"image"
 	"image/draw"
@@ -112,6 +113,80 @@ func Merge_all(nameImg, statsImg, characterImg, languageImg, dateImg, filepath s
 	// 合成した画像を保存
 	saveImage(backgroundImage, filepath)
 	ResizeImage(filepath, 700, 0)
+}
+
+// 画像をメモリ上で生成してバイトデータとして返す関数
+func Merge_all_to_bytes(nameImg, statsImg, characterImg, languageImg, dateImg string) ([]byte, error) {
+	// 背景画像を読み込む
+	backgroundImage, err := loadImage(nameImg)
+	if err != nil {
+		fmt.Println("Error loading background image:", err)
+		return nil, err
+	}
+
+	// 背景画像の幅と高さを取得
+	backgroundWidth := backgroundImage.Bounds().Dx()
+	backgroundHeight := backgroundImage.Bounds().Dy()
+	
+	// 合成する画像の読み込み
+	overlayImages := []string{statsImg, characterImg, languageImg, dateImg}
+
+	// 画像のリサイズ
+	ResizeImage(statsImg, uint(46*backgroundWidth)/100, 0)
+	ResizeImage(characterImg, uint(40*backgroundWidth)/100, uint(40*backgroundWidth)/100)
+	ResizeImage(languageImg, uint((46*backgroundWidth)/100), 0)
+	ResizeImage(dateImg, uint((80*backgroundWidth)/100), 0)
+	
+	// 画像の幅と高さを取得
+	_, height1, _ := getImageSize(characterImg)
+	_, height2, _ := getImageSize(languageImg)
+
+	// 画像を背景の上に重ねる
+	for i, overlayImage := range overlayImages {
+		overlay, err := loadImage(overlayImage)
+		if err != nil {
+			fmt.Println("Error loading overlay image:", err)
+			return nil, err
+		}
+		overlayX := 0
+		overlayY := 0
+
+		switch i {
+		case 0:
+			// 配置する座標を計算
+			overlayX = (2 * backgroundWidth) / 100
+			overlayY = height1 + (10*backgroundHeight)/100
+		case 1:
+			overlayX = (50 * backgroundWidth) / 100
+			overlayY = (5 * backgroundHeight) / 100
+		case 2:
+			overlayX = (52 * backgroundWidth) / 100
+			overlayY = height1 + (10*backgroundHeight)/100
+		case 3:
+			overlayX = (10 * backgroundWidth) / 100
+			overlayY = height1 + height2 + (15*backgroundHeight)/100
+		default:
+			overlayX = 0
+			overlayY = 0
+		}
+		overlayPos := image.Point{overlayX, overlayY}
+
+		// 合成画像を背景画像に描画
+		draw.Draw(backgroundImage.(*image.RGBA), overlay.Bounds().Add(overlayPos), overlay, image.Point{}, draw.Over)
+	}
+
+	// 画像をリサイズ
+	resizedImg := resize.Resize(700, 0, backgroundImage, resize.NearestNeighbor)
+
+	// 画像をバイトデータにエンコード
+	var buf bytes.Buffer
+	err = png.Encode(&buf, resizedImg)
+	if err != nil {
+		fmt.Println("Error encoding image as PNG:", err)
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
 
 // 画像を保存する関数

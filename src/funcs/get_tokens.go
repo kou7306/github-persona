@@ -17,22 +17,17 @@ func GetTokens(currentIndex int) (string, int) {
 		fmt.Println("Error loading .env file")
 		return "", currentIndex
 	}
+	
 	// 個人アクセストークンを環境変数から取得
-	// トークンをスライスに格納
-	// tokens := []string{
-	// 	os.Getenv("GITHUB_TOKEN1"),
-	// 	os.Getenv("GITHUB_TOKEN2"),
-	// }
-	tokens, _ := os.Getenv("GITHUB_TOKEN1"),
+	token := os.Getenv("GITHUB_TOKEN")
+	
+	if token == "" {
+		fmt.Println("GITHUB_TOKEN not found in environment variables")
+		return "", currentIndex
+	}
 
-		// ランダムシードの初期化
-		// rand.Seed(time.Now().UnixNano())
-		rand.New(rand.NewSource(time.Now().UnixNano()))
+	// ランダムシードの初期化
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	// 元の数字をランダムな数字（0~3）で置き換え
-	// currentIndex= rand.Intn(2) // 0から3のランダムな数
-
-	// key := tokens[currentIndex]
-
-	return tokens, currentIndex
+	return token, currentIndex
 }

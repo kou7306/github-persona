@@ -69,6 +69,12 @@ func JudgeRank(languages []LanguageStat, stats UserStats, star int) (string, int
 
 	}
 
+	// languagesが空の場合はデフォルト値を返す
+	if len(languages) == 0 {
+		fmt.Println("No languages found, using default values")
+		return "C-", level
+	}
+
 	// Percent の大きい順にソート
 	sort.Slice(languages, func(i, j int) bool {
 		return languages[i].Percent > languages[j].Percent
@@ -92,36 +98,41 @@ func JudgeRank(languages []LanguageStat, stats UserStats, star int) (string, int
 	}
 
 	if len(topLanguage) != 0 {
-		topLanguage = append(topLanguage, languages[1].Name)
-		percentages = append(percentages, languages[1].Percent)
-	} else {
-
-		if languages[1].Name != "HTML" && languages[1].Name != "CSS" && languages[1].Name != "JavaScript" && languages[1].Name != "TypeScript" {
+		// languages[1]が存在するかチェック
+		if len(languages) > 1 {
 			topLanguage = append(topLanguage, languages[1].Name)
 			percentages = append(percentages, languages[1].Percent)
-			topLanguage = append(topLanguage, temp[0].Name)
-			percentages = append(percentages, temp[0].Percent)
-			topLanguage = append(topLanguage, temp[0].Name)
-			percentages = append(percentages, temp[0].Percent)
-		} else {
-			// 上位２つの言語がHTML,CSS,JavaScript,TypeScriptの場合
+		}
+	} else {
+		// languages[1]が存在するかチェック
+		if len(languages) > 1 {
+			if languages[1].Name != "HTML" && languages[1].Name != "CSS" && languages[1].Name != "JavaScript" && languages[1].Name != "TypeScript" {
+				topLanguage = append(topLanguage, languages[1].Name)
+				percentages = append(percentages, languages[1].Percent)
+				topLanguage = append(topLanguage, temp[0].Name)
+				percentages = append(percentages, temp[0].Percent)
+				topLanguage = append(topLanguage, temp[0].Name)
+				percentages = append(percentages, temp[0].Percent)
+			} else {
+				// 上位２つの言語がHTML,CSS,JavaScript,TypeScriptの場合
 
-			temp = append(temp, languages[1])
-			// HTML,CSS,JavaScript,TypeScriptじゃない中の一位の言語を探す
-			for _, language := range languages[2:] {
-				if language.Name != "HTML" && language.Name != "CSS" && language.Name != "JavaScript" && language.Name != "TypeScript" {
-					if language.Percent >= 15.0 {
-						if _, exists := colordict[language.Name]; exists {
-							topLanguage = append(topLanguage, language.Name)
-							percentages = append(percentages, language.Percent)
+				temp = append(temp, languages[1])
+				// HTML,CSS,JavaScript,TypeScriptじゃない中の一位の言語を探す
+				for _, language := range languages[2:] {
+					if language.Name != "HTML" && language.Name != "CSS" && language.Name != "JavaScript" && language.Name != "TypeScript" {
+						if language.Percent >= 15.0 {
+							if _, exists := colordict[language.Name]; exists {
+								topLanguage = append(topLanguage, language.Name)
+								percentages = append(percentages, language.Percent)
+								topLanguage = append(topLanguage, temp[0].Name)
+								percentages = append(percentages, temp[0].Percent)
+							}
+						} else {
 							topLanguage = append(topLanguage, temp[0].Name)
+							topLanguage = append(topLanguage, temp[1].Name)
 							percentages = append(percentages, temp[0].Percent)
+							percentages = append(percentages, temp[1].Percent)
 						}
-					} else {
-						topLanguage = append(topLanguage, temp[0].Name)
-						topLanguage = append(topLanguage, temp[1].Name)
-						percentages = append(percentages, temp[0].Percent)
-						percentages = append(percentages, temp[1].Percent)
 					}
 				}
 			}
