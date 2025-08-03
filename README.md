@@ -4,7 +4,7 @@
 
 ## 生成例
 
-![GitHub Persona](https://github-persona-backend-vrkndjdhdq-uc.a.run.app/create?username=kou7306)
+![GitHub Persona](./example-output.png)
 
 ## GitHub Persona Image
 
@@ -20,7 +20,7 @@ To display it in your markdown, simply copy and paste the following code. Rememb
 
 #### Example
 
-![GitHub Persona](https://github-persona-backend-vrkndjdhdq-uc.a.run.app/create?username=kou7306)
+![GitHub Persona](./example-output.png)
 
 ## Contributing
 
