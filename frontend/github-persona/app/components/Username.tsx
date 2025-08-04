@@ -54,13 +54,17 @@ function ImageDisplay({
             className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999]"
             style={{ position: "absolute", zIndex: 9999 }}
           >
-            <div className="flex flex-col items-center justify-center p-12 bg-gray-900 bg-opacity-95 rounded-xl min-h-[300px] w-80 border-4 border-green-500 shadow-2xl">
+            <div className="flex flex-col items-center justify-center p-12 bg-gray-900 bg-opacity-95 rounded-xl min-h-[300px] w-80 max-w-sm border-4 border-green-500 shadow-2xl">
               <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-500 mb-6"></div>
-              <p className="text-white text-xl font-bold mb-2">
+              <p className="text-white text-xl font-bold mb-2 text-center">
                 画像を生成中...
               </p>
-              <p className="text-gray-300 text-lg">しばらくお待ちください</p>
-              <div className="mt-4 text-green-400 text-sm">処理中...</div>
+              <p className="text-gray-300 text-lg text-center">
+                しばらくお待ちください
+              </p>
+              <div className="mt-4 text-green-400 text-sm text-center">
+                処理中...
+              </div>
             </div>
           </div>
         )}
@@ -75,11 +79,17 @@ function ImageDisplay({
         className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999]"
         style={{ position: "fixed", zIndex: 9999 }}
       >
-        <div className="flex flex-col items-center justify-center p-12 bg-gray-900 bg-opacity-95 rounded-xl min-h-[300px] w-80 border-4 border-green-500 shadow-2xl">
+        <div className="flex flex-col items-center justify-center p-12 bg-gray-900 bg-opacity-95 rounded-xl min-h-[300px] w-80 max-w-sm border-4 border-green-500 shadow-2xl">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-500 mb-6"></div>
-          <p className="text-white text-xl font-bold mb-2">画像を生成中...</p>
-          <p className="text-gray-300 text-lg">しばらくお待ちください</p>
-          <div className="mt-4 text-green-400 text-sm">処理中...</div>
+          <p className="text-white text-xl font-bold mb-2 text-center">
+            画像を生成中...
+          </p>
+          <p className="text-gray-300 text-lg text-center">
+            しばらくお待ちください
+          </p>
+          <div className="mt-4 text-green-400 text-sm text-center">
+            処理中...
+          </div>
         </div>
       </div>
     );
@@ -192,7 +202,7 @@ function Username() {
         )}
       </div>
       <div className="flex flex-col items-center justify-center z-[9999] relative min-h-[300px] w-full">
-        <div className="flex justify-center items-center w-full max-w-2xl">
+        <div className="flex justify-center items-center w-full max-w-2xl px-4">
           <ImageDisplay
             loading={loading}
             imageUrl={imageUrl}
