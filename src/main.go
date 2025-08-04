@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/tomoish/github-persona/funcs"
 	"github.com/tomoish/github-persona/graphs"
@@ -130,6 +131,32 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 		// GETリクエストの処理
 		fmt.Printf("Processing request for user: %s\n", username)
 		
+		// キャッシュチェック - 既存の画像があるか確認
+		nocache := queryValues.Get("nocache")
+		finalImagePath := fmt.Sprintf("./images/final_%s.png", username)
+		if nocache != "1" {
+			if _, err := os.Stat(finalImagePath); err == nil {
+				// キャッシュされた画像が存在する場合、直接返す
+				fmt.Printf("Cache hit for %s, serving cached image\n", username)
+				imageBytes, err := os.ReadFile(finalImagePath)
+				if err != nil {
+					fmt.Printf("Error reading cached image for %s: %v\n", username, err)
+					http.Error(w, "Failed to read cached image", http.StatusInternalServerError)
+					return
+				}
+				// レスポンスヘッダーを設定
+				w.Header().Set("Content-Type", "image/png")
+				w.Header().Set("Cache-Control", "public, max-age=3600")
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With")
+				w.Write(imageBytes)
+				fmt.Printf("Cached image served successfully for %s\n", username)
+				return
+			}
+		}
+		fmt.Printf("Cache miss for %s, generating new image\n", username)
+		
 		// 並行処理で画像生成を高速化
 		reposChan := make(chan []funcs.Repository)
 		statsChan := make(chan funcs.UserStats)
@@ -213,9 +240,9 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 			characterChan <- nil
 		}()
 		
-		// コミットチャートを並行生成
+		// コミットチャートを並行生成（解像度を下げて高速化）
 		go func() {
-			err := graphs.DrawCommitChart(dailyCommits, maxCommits, 1600, 1000, username) // 2400x1600から1600x1000に調整
+			err := graphs.DrawCommitChart(dailyCommits, maxCommits, 800, 500, username) // 解像度を下げて高速化
 			commitChartChan <- err
 		}()
 		
@@ -271,7 +298,7 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Images merged successfully for %s\n", username)
 
 		// 最終的なマージされた画像をファイルとして保存
-		finalImagePath := fmt.Sprintf("./images/final_%s.png", username)
+		finalImagePath = fmt.Sprintf("./images/final_%s.png", username)
 		absPath, _ := os.Getwd()
 		fullPath := fmt.Sprintf("%s/%s", absPath, finalImagePath)
 		err = os.WriteFile(finalImagePath, imageBytes, 0644)
@@ -312,6 +339,49 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GitHub用の最適化されたエンドポイント
+func githubHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "*")
+
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	queryValues := r.URL.Query()
+	username := queryValues.Get("username")
+	
+	if username == "" {
+		http.Error(w, "username is required", http.StatusBadRequest)
+		return
+	}
+
+	// キャッシュバスティングパラメータをチェック
+	forceUpdate := queryValues.Get("update") == "1"
+	nocache := queryValues.Get("nocache") == "1"
+	timestamp := queryValues.Get("t") != "" // タイムスタンプパラメータがある場合は強制更新
+	
+	// キャッシュチェック（強制更新でない場合のみ）
+	if !forceUpdate && !nocache && !timestamp {
+		cachedImagePath := fmt.Sprintf("./images/final_%s.png", username)
+		if _, err := os.Stat(cachedImagePath); err == nil {
+			// キャッシュされた画像が存在する場合、直接返す
+			imageBytes, readErr := os.ReadFile(cachedImagePath)
+			if readErr == nil {
+				w.Header().Set("Content-Type", "image/png")
+				w.Header().Set("Cache-Control", "public, max-age=3600") // 1時間キャッシュ（短縮）
+				w.Write(imageBytes)
+				return
+			}
+		}
+	}
+
+	// 通常の処理を実行
+	createHandler(w, r)
+}
+
 func main() {
 	// http.HandleFunc("/test", handler)
 	// http.HandleFunc("/streak", getCommitStreakHandler)
@@ -322,8 +392,18 @@ func main() {
 	// http.HandleFunc("/merge", mergeAllContents)
 	// http.HandleFunc("/background", getBackgroundHandler)
 	http.HandleFunc("/create", createHandler)
+	http.HandleFunc("/github", githubHandler)
 	fmt.Println("Hello, World!")
-	err := http.ListenAndServe(":8080", nil)
+	
+	// タイムアウト設定付きのサーバー
+	server := &http.Server{
+		Addr:         ":8080",
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+	
+	err := server.ListenAndServe()
 	if err != nil {
 		log.Fatalf("HTTP server failed: %v", err)
 	}

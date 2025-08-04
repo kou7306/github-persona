@@ -21,6 +21,53 @@ function ImageDisplay({
 }: ImageDisplayProps) {
   console.log("ImageDisplay - loading:", loading, "imageUrl:", imageUrl);
 
+  if (imageUrl) {
+    console.log("Showing image with URL:", imageUrl);
+    return (
+      <div className="relative flex justify-center items-center">
+        <img
+          src={imageUrl}
+          alt="GitHub User Image"
+          className="w-8/12 h-auto"
+          onLoad={(e) => {
+            console.log("Image loaded successfully");
+            const img = e.target as HTMLImageElement;
+            console.log(
+              "Image dimensions:",
+              img.naturalWidth,
+              "x",
+              img.naturalHeight
+            );
+            // 画像が正常に読み込まれたことを通知
+            onImageLoad();
+          }}
+          onError={(e) => {
+            console.error("Image load error:", e);
+            const img = e.target as HTMLImageElement;
+            console.error("Failed image URL:", img.src);
+            // 画像の読み込みに失敗したことを通知
+            onImageError();
+          }}
+        />
+        {loading && (
+          <div
+            className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999]"
+            style={{ position: "absolute", zIndex: 9999 }}
+          >
+            <div className="flex flex-col items-center justify-center p-12 bg-gray-900 bg-opacity-95 rounded-xl min-h-[300px] border-4 border-green-500 shadow-2xl">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-500 mb-6"></div>
+              <p className="text-white text-xl font-bold mb-2">
+                画像を生成中...
+              </p>
+              <p className="text-gray-300 text-lg">しばらくお待ちください</p>
+              <div className="mt-4 text-green-400 text-sm">処理中...</div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (loading) {
     console.log("Showing loading spinner");
     return (
@@ -35,36 +82,6 @@ function ImageDisplay({
           <div className="mt-4 text-green-400 text-sm">処理中...</div>
         </div>
       </div>
-    );
-  }
-
-  if (imageUrl) {
-    console.log("Showing image with URL:", imageUrl);
-    return (
-      <img
-        src={imageUrl}
-        alt="GitHub User Image"
-        className="w-8/12 h-auto"
-        onLoad={(e) => {
-          console.log("Image loaded successfully");
-          const img = e.target as HTMLImageElement;
-          console.log(
-            "Image dimensions:",
-            img.naturalWidth,
-            "x",
-            img.naturalHeight
-          );
-          // 画像が正常に読み込まれたことを通知
-          onImageLoad();
-        }}
-        onError={(e) => {
-          console.error("Image load error:", e);
-          const img = e.target as HTMLImageElement;
-          console.error("Failed image URL:", img.src);
-          // 画像の読み込みに失敗したことを通知
-          onImageError();
-        }}
-      />
     );
   }
 
@@ -100,7 +117,7 @@ function Username() {
 
   const copyToClipboard = async () => {
     await navigator.clipboard.writeText(
-      `![GitHub persona](${apiUrl}/create?username=${username})`
+      `![GitHub persona](${apiUrl}/github?username=${username})`
     );
   };
 
@@ -109,12 +126,12 @@ function Username() {
     e.preventDefault();
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
     const timestamp = Date.now(); // キャッシュバスティング用
-    const fullUrl = `${apiUrl}/create?username=${username}&t=${timestamp}`;
+    const fullUrl = `${apiUrl}/github?username=${username}&t=${timestamp}`;
     console.log("Calling API:", fullUrl);
     setLoading(true);
     console.log("Loading set to true");
     setImageUrl(""); // 古い画像をクリア
-    setResultText(`![GitHub persona](${apiUrl}/create?username=${username})`);
+    setResultText(`![GitHub persona](${apiUrl}/github?username=${username})`);
 
     try {
       console.log("Starting API call...");
@@ -175,12 +192,14 @@ function Username() {
         )}
       </div>
       <div className="flex flex-col items-center justify-center z-[9999] relative min-h-[300px] w-full">
-        <ImageDisplay
-          loading={loading}
-          imageUrl={imageUrl}
-          onImageLoad={handleImageLoad}
-          onImageError={handleImageError}
-        />
+        <div className="flex justify-center items-center w-full">
+          <ImageDisplay
+            loading={loading}
+            imageUrl={imageUrl}
+            onImageLoad={handleImageLoad}
+            onImageError={handleImageError}
+          />
+        </div>
       </div>
     </form>
   );

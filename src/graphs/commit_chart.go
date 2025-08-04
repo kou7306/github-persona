@@ -50,8 +50,8 @@ func DrawCommitChart(commitsHistory []int, maxCommits int, width int, height int
 	bgColor := color.RGBA{R: 30, G: 30, B: 30, A: 255} // より暗い背景
 	p.BackgroundColor = bgColor
 
-	// 棒グラフを作成
-	bars, err := plotter.NewBarChart(plotter.Values(values), vg.Points(50))
+	// 棒グラフを作成（間隔を調整）
+	bars, err := plotter.NewBarChart(plotter.Values(values), vg.Points(25))
 	if err != nil {
 		return err
 	}
@@ -62,20 +62,20 @@ func DrawCommitChart(commitsHistory []int, maxCommits int, width int, height int
 
 	// タイトル
 	p.Title.Text = "Monthly Commit Activity"
-	p.Title.TextStyle.Font.Size = 45
+	p.Title.TextStyle.Font.Size = 30
 	p.Title.TextStyle.Color = color.RGBA{R: 255, G: 255, B: 255, A: 255}
-	p.Title.Padding = 45
+	p.Title.Padding = 30
 
 	// Y軸
 	p.Y.Label.Text = "Commits"
-	p.Y.Label.TextStyle.Font.Size = 36
+	p.Y.Label.TextStyle.Font.Size = 24
 	p.Y.Label.TextStyle.Color = color.RGBA{R: 255, G: 255, B: 255, A: 255}
-	p.Y.Tick.Label.Font.Size = 30
+	p.Y.Tick.Label.Font.Size = 20
 	p.Y.Tick.Label.Color = color.RGBA{R: 255, G: 255, B: 255, A: 255}
 	p.Y.Tick.Color = color.RGBA{R: 255, G: 255, B: 255, A: 255}
 	p.Y.LineStyle.Color = color.RGBA{R: 255, G: 255, B: 255, A: 255}
-	p.Y.LineStyle.Width = vg.Points(2)
-	p.Y.Label.Padding = 45
+	p.Y.LineStyle.Width = vg.Points(1.5)
+	p.Y.Label.Padding = 30
 
 	// Y軸の範囲を調整
 	maxValue := 0.0
@@ -85,28 +85,32 @@ func DrawCommitChart(commitsHistory []int, maxCommits int, width int, height int
 		}
 	}
 	if maxValue > 0 {
-		p.Y.Max = maxValue * 1.2
+		p.Y.Max = maxValue * 1.2 // example-output.pngに近い設定
 	}
 
 	// X軸
 	p.X.Label.Text = "Month"
-	p.X.Label.TextStyle.Font.Size = 36
+	p.X.Label.TextStyle.Font.Size = 24
 	p.X.Label.TextStyle.Color = color.RGBA{R: 255, G: 255, B: 255, A: 255}
-	p.X.Tick.Label.Font.Size = 30
+	p.X.Tick.Label.Font.Size = 20
 	p.X.Tick.Label.Color = color.RGBA{R: 255, G: 255, B: 255, A: 255}
 	p.X.Tick.Color = color.RGBA{R: 255, G: 255, B: 255, A: 255}
 	p.X.LineStyle.Color = color.RGBA{R: 255, G: 255, B: 255, A: 255}
-	p.X.LineStyle.Width = vg.Points(2)
-	p.X.Label.Padding = 45
+	p.X.LineStyle.Width = vg.Points(1.5)
+	p.X.Label.Padding = 30
 
-	// カスタムX軸ティック
+	// カスタムX軸ティック（間隔を調整）
 	var ticks []plot.Tick
 	for i, label := range labels {
 		ticks = append(ticks, plot.Tick{Value: float64(i), Label: label})
 	}
 	p.X.Tick.Marker = plot.ConstantTicks(ticks)
+	
+	// X軸の範囲を調整して間隔を作る
+	p.X.Min = -0.5
+	p.X.Max = float64(len(values)) - 0.5
 
-	// グリッドを追加
+	// グリッドを追加（example-output.pngに近い設定）
 	grid := plotter.NewGrid()
 	grid.Horizontal.Color = color.RGBA{R: 80, G: 80, B: 80, A: 150}
 	grid.Vertical.Color = color.RGBA{R: 80, G: 80, B: 80, A: 150}

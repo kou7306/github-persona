@@ -1,6 +1,6 @@
 export const getImage = async (username: string): Promise<number> => {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-  const fullUrl = `${apiUrl}/create?username=${username}`;
+  const fullUrl = `${apiUrl}/github?username=${username}`;
   console.log("API URL:", fullUrl);
   console.log(
     "Environment variable NEXT_PUBLIC_API_URL:",
