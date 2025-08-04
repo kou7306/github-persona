@@ -3,7 +3,6 @@ package graphs
 import (
 	"fmt"
 	"image/color"
-	"sort"
 	"time"
 
 	"gonum.org/v1/plot"
@@ -24,17 +23,42 @@ func DrawCommitChart(commitsHistory []int, maxCommits int, width int, height int
 		monthlyData[monthKey] += commits
 	}
 
-	// 時系列順にソート
-	months := make([]string, 0, len(monthlyData))
+	// 時系列順にソート（現在の月が右端に来るように）
+	availableMonths := make([]string, 0, len(monthlyData))
 	for month := range monthlyData {
-		months = append(months, month)
+		availableMonths = append(availableMonths, month)
 	}
-	sort.Strings(months)
+	
+	// 月の順序を定義（現在の月から過去に向かって）
+	monthOrder := []string{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}
+	
+	// 現在の月を基準にソート
+	currentMonth := now.Format("Jan")
+	
+	// 現在の月のインデックスを見つける
+	currentMonthIndex := -1
+	for i, monthName := range monthOrder {
+		if monthName == currentMonth {
+			currentMonthIndex = i
+			break
+		}
+	}
+	
+	// 現在の月から過去に向かってソート
+	var sortedMonths []string
+	for i := 0; i < 12; i++ {
+		monthIndex := (currentMonthIndex - i + 12) % 12
+		monthName := monthOrder[monthIndex]
+		if _, exists := monthlyData[monthName]; exists {
+			sortedMonths = append(sortedMonths, monthName)
+		}
+	}
+
 
 	// グラフ用のデータを作成
 	var values []float64
 	var labels []string
-	for _, month := range months {
+	for _, month := range sortedMonths {
 		values = append(values, float64(monthlyData[month]))
 		labels = append(labels, month)
 	}
