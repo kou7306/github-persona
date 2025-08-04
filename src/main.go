@@ -325,7 +325,7 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 
 		// レスポンスヘッダーを設定
 		w.Header().Set("Content-Type", "image/png")
-		w.Header().Set("Cache-Control", "public, max-age=3600") // 1時間キャッシュ
+		w.Header().Set("Cache-Control", "public, max-age=86400") // 24時間キャッシュ
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With")
@@ -363,7 +363,7 @@ func githubHandler(w http.ResponseWriter, r *http.Request) {
 	nocache := queryValues.Get("nocache") == "1"
 	timestamp := queryValues.Get("t") != "" // タイムスタンプパラメータがある場合は強制更新
 	
-	// キャッシュチェック（強制更新でない場合のみ）
+			// キャッシュチェック（強制更新でない場合のみ）
 	if !forceUpdate && !nocache && !timestamp {
 		cachedImagePath := fmt.Sprintf("./images/final_%s.png", username)
 		if _, err := os.Stat(cachedImagePath); err == nil {
@@ -371,7 +371,7 @@ func githubHandler(w http.ResponseWriter, r *http.Request) {
 			imageBytes, readErr := os.ReadFile(cachedImagePath)
 			if readErr == nil {
 				w.Header().Set("Content-Type", "image/png")
-				w.Header().Set("Cache-Control", "public, max-age=3600") // 1時間キャッシュ（短縮）
+				w.Header().Set("Cache-Control", "public, max-age=86400") // 24時間キャッシュ
 				w.Write(imageBytes)
 				return
 			}

@@ -146,7 +146,11 @@ GitHub Persona は、あなたの GitHub 活動を分析して、RPG 風のキ�
 ![GitHub Persona](https://github-persona-backend-vrkndjdhdq-uc.a.run.app/github?username=your-username&t=20240803)
 ```
 
-**注意**: GitHub README の画像はキャッシュされるため、更新を確認したい場合は上記のパラメータを使用してください。
+**注意**:
+
+- GitHub README の画像はキャッシュされるため、更新を確認したい場合は上記のパラメータを使用してください
+- 通常のキャッシュ時間は 24 時間です（1 日 1 回更新）
+- 強制更新パラメータを使用すると即座に新しい画像が生成されます
 
 ## 🌐 デモ
 
