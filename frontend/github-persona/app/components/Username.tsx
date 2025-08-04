@@ -51,8 +51,8 @@ function ImageDisplay({
         />
         {loading && (
           <div
-            className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999]"
-            style={{ position: "absolute", zIndex: 9999 }}
+            className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999]"
+            style={{ position: "fixed", zIndex: 9999 }}
           >
             <div className="flex flex-col items-center justify-center p-12 bg-gray-900 bg-opacity-95 rounded-xl min-h-[300px] max-w-lg mx-auto border-4 border-green-500 shadow-2xl">
               <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-500 mb-6"></div>
