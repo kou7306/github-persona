@@ -44,9 +44,9 @@ func DrawCommitChart(commitsHistory []int, maxCommits int, width int, height int
 		}
 	}
 	
-	// 現在の月から過去に向かってソート
+	// 過去から現在の月に向かってソート（現在の月が右端に来るように）
 	var sortedMonths []string
-	for i := 0; i < 12; i++ {
+	for i := 11; i >= 0; i-- {
 		monthIndex := (currentMonthIndex - i + 12) % 12
 		monthName := monthOrder[monthIndex]
 		if _, exists := monthlyData[monthName]; exists {
