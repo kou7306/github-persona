@@ -117,7 +117,7 @@ function Username() {
 
   const copyToClipboard = async () => {
     await navigator.clipboard.writeText(
-      `![GitHub persona](${apiUrl}/github?username=${username})`
+      `![GitHub Persona](${apiUrl}/github?username=${username})`
     );
   };
 
@@ -131,7 +131,7 @@ function Username() {
     setLoading(true);
     console.log("Loading set to true");
     setImageUrl(""); // 古い画像をクリア
-    setResultText(`![GitHub persona](${apiUrl}/github?username=${username})`);
+    setResultText(`![GitHub Persona](${apiUrl}/github?username=${username})`);
 
     try {
       console.log("Starting API call...");

@@ -350,6 +350,11 @@ func githubHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	queryValues := r.URL.Query()
 	username := queryValues.Get("username")
 	
